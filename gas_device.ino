@@ -60,8 +60,8 @@ void loop() {
 
     // Send "high alert" SMS
     makeCall();
-    sendSMS("+919149374020", " Jabtagunj ward-01-1S is now going to over flow.");
-    sendSMS("+918077940900", "Jabtagunj ward-01-1S is now going to over flow.");
+    sendSMS("+91987654321", " Jabtagunj ward-01-1S is now going to over flow.");
+    sendSMS("+91987654321", "Jabtagunj ward-01-1S is now going to over flow.");
     
   } else if (distanceCm < 40) { //for yellow led
    // Beep buzzer once
@@ -75,7 +75,7 @@ void loop() {
     digitalWrite(led2Pin, LOW);
    
     // Send "alert" SMS
-    sendSMS("+919149374020", "Jabtagunj ward-01-1S is need to clean.");
+    sendSMS("+91987654321", "Jabtagunj ward-01-1S is need to clean.");
   }
 
   delay(500);  // Delay between readings
@@ -94,6 +94,6 @@ void sendSMS(String phoneNumber, String message) {
   delay(1000);
 }
 void makeCall() {
-  sim800l.println("ATD+918077940900;"); // Replace with your number
+  sim800l.println("ATD+91987654321;"); // Replace with your number
   delay(100); // Adjust the delay based on your needs
 }  give me name for this project
