@@ -1,65 +1,99 @@
-#include <SoftwareSerial.h>
-#include <MQUnifiedsensor.h> // Specific library for MQ-135
+#include <LiquidCrystal_I2C.h>
+#include <SoftwareSerial.h> // For SIM800L communication
 
-// Pin connections (adjust based on your setup)
-byte board = "UNO";  // Assuming Arduino Uno
-const int mq135Pin = A0;
-const int simRxPin = 0;
-const int simTxPin = 1;
+// Define pins
+const int trigPin = 9;
+const int echoPin = 10;
 const int buzzerPin = 8;
-const int ledPin = 9;
+const int led1Pin = 7; // For red LED 
+const int led2Pin = 6; // For yellow LED 
+ 
+// Define SIM800L pins
+const int rxPin = 12;
+const int txPin = 13;
 
-// Calibration values for MQ-135 (adjust based on your sensor)
-float Ro = 10;  // Replace with your sensor's Ro value
-
-// Threshold for gas detection (adjust as needed)
-const int gasThreshold = 300;  // Example value
-
-// Phone number for notifications
-const char* phoneNumber = "123445";
-
-MQUnifiedsensor mq135(String(board), mq135Pin, "MQ-135");
-SoftwareSerial simModule(simRxPin, simTxPin);
+// Create LCD and SIM800L objects
+LiquidCrystal_I2C lcd(0x3F, 16, 2);  // Adjust I2C address if needed
+SoftwareSerial sim800l(rxPin, txPin);
 
 void setup() {
-  Serial.begin(9600);
-  simModule.begin(9600);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
   pinMode(buzzerPin, OUTPUT);
-  pinMode(ledPin, OUTPUT);
-
-  // Initialize MQ-135 sensor
-  mq135.setRegressionMethod(1); // Set regression method (check library documentation)
-  mq135.init();
-  mq135.setRL(Ro); // Set Ro value
-
-  // Initialize SIM module (replace with appropriate AT commands)
-  simModule.println("AT");
-  delay(1000);
-  simModule.println("AT+CMGF=1");  // Set SMS mode to text
-  delay(1000);
+  pinMode(led1Pin, OUTPUT);
+  pinMode(led2Pin, OUTPUT);
+lcd.init();
+lcd.backlight();
+  lcd.begin(16,2);
+  sim800l.begin(9600);  // Start SIM800L communication
 }
 
 void loop() {
-  mq135.update(); // Update sensor readings
-  float ppm = mq135.readSensor("CO"); // Read CO concentration
+  long duration, distanceCm;
 
-  if (ppm > gasThreshold) {
-    // Send SMS notification
-    simModule.println("AT+CMGS=\"" + String(phoneNumber) + "\"");
-    delay(1000);
-    simModule.println("Gas leak detected! CO concentration: " + String(ppm) + " ppm");
-    simModule.write(26);  // ASCII code for Ctrl+Z to end message
+  // Measure distance
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distanceCm = duration * 0.034 / 2;
 
-    // Optionally, make a call
-    simModule.println("ATD" + String(phoneNumber) + ";");
+  // Display distance on LCD
+  lcd.clear();
+  lcd.print("Distance: ");
+  lcd.print(distanceCm);
+  lcd.print(" cm");
 
-    // Activate buzzer and LED
+  // Check distance and take actions
+  if (distanceCm < 10) { //for red led 
+    // Beep buzzer once
     digitalWrite(buzzerPin, HIGH);
-    digitalWrite(ledPin, HIGH);
-  } else {
+    delay(500);
     digitalWrite(buzzerPin, LOW);
-    digitalWrite(ledPin, LOW);
+
+    // Blink LED for 1 second
+    digitalWrite(led1Pin, HIGH);
+    delay(1000);
+    digitalWrite(led1Pin, LOW);
+
+    // Send "high alert" SMS
+    makeCall();
+    sendSMS("+919149374020", " Jabtagunj ward-01-1S is now going to over flow.");
+    sendSMS("+918077940900", "Jabtagunj ward-01-1S is now going to over flow.");
+    
+  } else if (distanceCm < 40) { //for yellow led
+   // Beep buzzer once
+    digitalWrite(buzzerPin, HIGH);
+    delay(500);
+    digitalWrite(buzzerPin, LOW);
+
+    // Blink LED for 1 second
+    digitalWrite(led2Pin, HIGH);
+    delay(1000);
+    digitalWrite(led2Pin, LOW);
+   
+    // Send "alert" SMS
+    sendSMS("+919149374020", "Jabtagunj ward-01-1S is need to clean.");
   }
 
-  delay(1000);  // Adjust delay as needed
+  delay(500);  // Delay between readings
 }
+
+void sendSMS(String phoneNumber, String message) {
+  sim800l.print("AT+CMGF=1\r");  // Set SMS mode to text
+  delay(1000);
+  sim800l.print("AT+CMGS=\"");
+  sim800l.print(phoneNumber);
+  sim800l.println("\"");
+  delay(1000);
+  sim800l.println(message);
+  delay(1000);
+  sim800l.println((char)26);  // Send SMS command
+  delay(1000);
+}
+void makeCall() {
+  sim800l.println("ATD+918077940900;"); // Replace with your number
+  delay(100); // Adjust the delay based on your needs
+}  give me name for this project
